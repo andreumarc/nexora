@@ -44,6 +44,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const companyName = user.memberships[0]?.company?.name ?? 'Nexora'
   const unreadNotifications = user.notifications.length
 
+  const role = user.memberships[0]?.role ?? null
+
   return (
     <AppShell
       user={{
@@ -56,6 +58,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       }}
       companyName={companyName}
       unreadNotifications={unreadNotifications}
+      isSuperadmin={user.isSuperadmin}
+      role={role}
     >
       {children}
     </AppShell>

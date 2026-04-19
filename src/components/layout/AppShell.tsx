@@ -16,27 +16,30 @@ interface AppShellProps {
   }
   companyName?: string
   unreadNotifications?: number
+  isSuperadmin?: boolean
+  role?: string | null
 }
 
-export function AppShell({ children, user, companyName, unreadNotifications = 0 }: AppShellProps) {
+export function AppShell({ children, user, companyName, unreadNotifications = 0, isSuperadmin = false, role }: AppShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* Sidebar */}
       <Sidebar
         companyName={companyName}
         unreadNotifications={unreadNotifications}
         mobileOpen={mobileMenuOpen}
         onMobileClose={() => setMobileMenuOpen(false)}
+        isSuperadmin={isSuperadmin ?? false}
       />
 
-      {/* Main content area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Topbar
           user={user}
           unreadNotifications={unreadNotifications}
           onMobileMenuOpen={() => setMobileMenuOpen(true)}
+          isSuperadmin={isSuperadmin}
+          role={role}
         />
         <main className="flex-1 overflow-y-auto scrollbar-thin">
           {children}

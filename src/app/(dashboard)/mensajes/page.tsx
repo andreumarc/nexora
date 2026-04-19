@@ -10,10 +10,11 @@ import { formatRelativeTime, truncate } from '@/lib/utils/format'
 
 export default async function MensajesPage() {
   const session = await auth()
-  if (!session?.user?.id) redirect('/login')
+  const userId = session?.user?.id
+  if (!userId) redirect('/login')
 
   const membership = await prisma.membership.findFirst({
-    where: { userId: session.user.id, isActive: true },
+    where: { userId, isActive: true },
     select: { companyId: true },
   })
 
@@ -22,7 +23,7 @@ export default async function MensajesPage() {
   const conversations = await prisma.directConversation.findMany({
     where: {
       companyId: membership.companyId,
-      members: { some: { userId: session.user.id } },
+      members: { some: { userId: userId } },
     },
     orderBy: { updatedAt: 'desc' },
     include: {
@@ -77,7 +78,7 @@ export default async function MensajesPage() {
       ) : (
         <div className="bg-white rounded-xl border border-gray-100 shadow-card divide-y divide-gray-50">
           {conversations.map((conv) => {
-            const otherMembers = conv.members.filter((m) => m.userId !== session.user.id)
+            const otherMembers = conv.members.filter((m) => m.userId !== userId)
             const displayMembers = conv.isGroup
               ? conv.members
               : otherMembers

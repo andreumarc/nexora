@@ -35,7 +35,7 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
 }
 
-export function getInitials(name: string | null, firstName?: string | null, lastName?: string | null): string {
+export function getInitials(name: string | null | undefined, firstName?: string | null, lastName?: string | null): string {
   if (firstName && lastName) return `${firstName[0]}${lastName[0]}`.toUpperCase()
   if (name) {
     const parts = name.trim().split(' ')

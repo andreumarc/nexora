@@ -1,4 +1,5 @@
-export type { RoleType, PresenceStatus, ChannelType, AnnouncementPriority, NotificationType, InvitationStatus, MessageType } from '@prisma/client'
+import type { RoleType, PresenceStatus, ChannelType, AnnouncementPriority, NotificationType, InvitationStatus, MessageType } from '@prisma/client'
+export type { RoleType, PresenceStatus, ChannelType, AnnouncementPriority, NotificationType, InvitationStatus, MessageType }
 
 export interface UserProfile {
   id: string
@@ -148,4 +149,3 @@ export interface NotificationWithMeta {
   announcementId: string | null
 }
 
-export type PresenceStatus = 'ONLINE' | 'AWAY' | 'BUSY' | 'OFFLINE'

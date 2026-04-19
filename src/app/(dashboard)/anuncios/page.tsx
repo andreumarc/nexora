@@ -48,10 +48,11 @@ const PRIORITY_CONFIG = {
 
 export default async function AnunciosPage() {
   const session = await auth()
-  if (!session?.user?.id) redirect('/login')
+  const userId = session?.user?.id
+  if (!userId) redirect('/login')
 
   const membership = await prisma.membership.findFirst({
-    where: { userId: session.user.id, isActive: true },
+    where: { userId, isActive: true },
     select: { companyId: true, role: true },
   })
 
@@ -76,7 +77,7 @@ export default async function AnunciosPage() {
         },
       },
       reads: {
-        where: { userId: session.user.id },
+        where: { userId: userId },
         select: { readAt: true, confirmedAt: true },
         take: 1,
       },
@@ -120,7 +121,7 @@ export default async function AnunciosPage() {
               </p>
               <div className="space-y-3">
                 {pinned.map((a) => (
-                  <AnnouncementCard key={a.id} announcement={a} userId={session.user.id!} />
+                  <AnnouncementCard key={a.id} announcement={a} userId={userId!} />
                 ))}
               </div>
             </div>
@@ -136,7 +137,7 @@ export default async function AnunciosPage() {
               )}
               <div className="space-y-3">
                 {regular.map((a) => (
-                  <AnnouncementCard key={a.id} announcement={a} userId={session.user.id!} />
+                  <AnnouncementCard key={a.id} announcement={a} userId={userId!} />
                 ))}
               </div>
             </div>

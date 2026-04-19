@@ -12,10 +12,11 @@ import type { RoleType } from '@prisma/client'
 
 export default async function DirectorioPage() {
   const session = await auth()
-  if (!session?.user?.id) redirect('/login')
+  const userId = session?.user?.id
+  if (!userId) redirect('/login')
 
   const membership = await prisma.membership.findFirst({
-    where: { userId: session.user.id, isActive: true },
+    where: { userId, isActive: true },
     select: { companyId: true, role: true },
   })
 
@@ -132,7 +133,7 @@ export default async function DirectorioPage() {
                   </div>
 
                   {/* Quick actions */}
-                  {user.id !== session.user.id && (
+                  {user.id !== userId && (
                     <div className="mt-3 pt-3 border-t border-gray-100 flex justify-center">
                       <div className="flex items-center gap-1.5 text-xs text-brand-600 font-medium hover:text-brand-700">
                         <MessageSquare className="w-3.5 h-3.5" />

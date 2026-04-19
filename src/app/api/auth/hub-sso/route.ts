@@ -31,14 +31,15 @@ export async function GET(request: NextRequest) {
     user = await prisma.user.create({ data: { email, name: name || email, isActive: true } })
   }
 
+  const isProd = process.env.NODE_ENV === 'production'
+  const cookieName = isProd ? '__Secure-authjs.session-token' : 'authjs.session-token'
   const secret = process.env.AUTH_SECRET!
   const sessionToken = await encode({
     token: { sub: user.id, email: user.email, name: user.name, id: user.id },
     secret,
+    salt: cookieName,
     maxAge: 30 * 24 * 60 * 60,
   })
-  const isProd = process.env.NODE_ENV === 'production'
-  const cookieName = isProd ? '__Secure-authjs.session-token' : 'authjs.session-token'
   const response = NextResponse.redirect(`${origin}/dashboard`)
   response.cookies.set(cookieName, sessionToken, {
     httpOnly: true,

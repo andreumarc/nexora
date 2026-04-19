@@ -1,0 +1,63 @@
+import { redirect } from 'next/navigation'
+import { auth } from '@/lib/auth/auth'
+import { prisma } from '@/lib/db/prisma'
+import { AppShell } from '@/components/layout/AppShell'
+
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const session = await auth()
+
+  if (!session?.user?.id) redirect('/login')
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      firstName: true,
+      lastName: true,
+      avatarUrl: true,
+      jobTitle: true,
+      isActive: true,
+      isBlocked: true,
+      onboardingCompleted: true,
+      isSuperadmin: true,
+      memberships: {
+        where: { isActive: true },
+        select: {
+          role: true,
+          company: { select: { id: true, name: true } },
+        },
+        take: 1,
+      },
+      notifications: {
+        where: { isRead: false },
+        select: { id: true },
+      },
+    },
+  })
+
+  if (!user || !user.isActive || user.isBlocked) redirect('/login')
+
+  if (!user.onboardingCompleted && !user.isSuperadmin) redirect('/onboarding')
+
+  const companyName = user.memberships[0]?.company?.name ?? 'Nexora'
+  const unreadNotifications = user.notifications.length
+
+  return (
+    <AppShell
+      user={{
+        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        jobTitle: user.jobTitle,
+        avatarUrl: user.avatarUrl,
+      }}
+      companyName={companyName}
+      unreadNotifications={unreadNotifications}
+    >
+      {children}
+    </AppShell>
+  )
+}

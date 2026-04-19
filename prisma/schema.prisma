@@ -1,0 +1,642 @@
+// NEXORA — Prisma Schema
+// Multi-tenant corporate communication platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ============================================================
+// TENANT / COMPANY HIERARCHY
+// ============================================================
+
+model Company {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  logoUrl   String?
+  domain    String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  settings      TenantSettings?
+  clinics       Clinic[]
+  departments   Department[]
+  teams         Team[]
+  memberships   Membership[]
+  invitations   Invitation[]
+  channels      Channel[]
+  announcements Announcement[]
+  conversations DirectConversation[]
+  auditLogs     AuditLog[]
+
+  @@index([slug])
+  @@index([isActive])
+}
+
+model Clinic {
+  id        String    @id @default(cuid())
+  companyId String
+  name      String
+  code      String?
+  address   String?
+  city      String?
+  phone     String?
+  email     String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  memberships Membership[]
+  channels    Channel[]
+  departments Department[]
+
+  @@unique([companyId, code])
+  @@index([companyId])
+  @@index([isActive])
+}
+
+model Department {
+  id          String   @id @default(cuid())
+  companyId   String
+  clinicId    String?
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clinic      Clinic?      @relation(fields: [clinicId], references: [id])
+  memberships Membership[]
+  channels    Channel[]
+  teams       Team[]
+
+  @@index([companyId])
+  @@index([clinicId])
+}
+
+model Team {
+  id           String   @id @default(cuid())
+  companyId    String
+  departmentId String?
+  name         String
+  description  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  company      Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department   Department? @relation(fields: [departmentId], references: [id])
+  memberships  Membership[]
+
+  @@index([companyId])
+}
+
+// ============================================================
+// USERS & AUTH
+// ============================================================
+
+model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  emailVerified       DateTime?
+  name                String?
+  firstName           String?
+  lastName            String?
+  avatarUrl           String?
+  phone               String?
+  jobTitle            String?
+  hashedPassword      String?
+  isActive            Boolean   @default(true)
+  isBlocked           Boolean   @default(false)
+  blockedAt           DateTime?
+  blockedReason       String?
+  onboardingCompleted Boolean   @default(false)
+  isSuperadmin        Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  lastActiveAt        DateTime?
+  deletedAt           DateTime?
+
+  accounts             Account[]
+  sessions             Session[]
+  memberships          Membership[]
+  sentMessages         Message[]            @relation("MessageSender")
+  editedMessages       Message[]            @relation("MessageEditor")
+  pinnedMessages       Message[]            @relation("MessagePinner")
+  messageReads         MessageRead[]
+  messageReactions     MessageReaction[]
+  dmMemberships        DirectConversationMember[]
+  announcements        Announcement[]       @relation("AnnouncementCreator")
+  announcementReads    AnnouncementRead[]
+  uploadedFiles        MessageAttachment[]
+  notifications        Notification[]
+  presence             UserPresence?
+  sentInvitations      Invitation[]         @relation("InvitationSender")
+  receivedInvitations  Invitation[]         @relation("InvitationReceiver")
+  auditLogs            AuditLog[]
+  impersonations       AuditLog[]           @relation("Impersonator")
+  channelMemberships   ChannelMember[]
+
+  @@index([email])
+  @@index([isActive, isBlocked])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ============================================================
+// ROLES & MEMBERSHIPS
+// ============================================================
+
+enum RoleType {
+  SUPERADMIN
+  COMPANY_ADMIN
+  DIRECTOR_GENERAL
+  DIRECTOR_OPERATIONS
+  CLINIC_DIRECTOR
+  HR_MANAGER
+  RECEPTIONIST
+  EMPLOYEE
+  GUEST
+}
+
+model Membership {
+  id           String   @id @default(cuid())
+  userId       String
+  companyId    String
+  clinicId     String?
+  departmentId String?
+  teamId       String?
+  role         RoleType @default(EMPLOYEE)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company      Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clinic       Clinic?     @relation(fields: [clinicId], references: [id])
+  department   Department? @relation(fields: [departmentId], references: [id])
+  team         Team?       @relation(fields: [teamId], references: [id])
+
+  @@unique([userId, companyId])
+  @@index([userId])
+  @@index([companyId])
+  @@index([clinicId])
+  @@index([role])
+}
+
+// ============================================================
+// CHANNELS
+// ============================================================
+
+enum ChannelType {
+  PUBLIC
+  PRIVATE
+  ANNOUNCEMENT
+  OPERATIONAL
+}
+
+model Channel {
+  id            String      @id @default(cuid())
+  companyId     String
+  clinicId      String?
+  departmentId  String?
+  name          String
+  slug          String
+  description   String?
+  type          ChannelType @default(PUBLIC)
+  isArchived    Boolean     @default(false)
+  isReadOnly    Boolean     @default(false)
+  isPinned      Boolean     @default(false)
+  isOperational Boolean     @default(false)
+  createdById   String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+
+  company    Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clinic     Clinic?     @relation(fields: [clinicId], references: [id])
+  department Department? @relation(fields: [departmentId], references: [id])
+  members    ChannelMember[]
+  messages   Message[]
+
+  @@unique([companyId, slug])
+  @@index([companyId])
+  @@index([clinicId])
+  @@index([type])
+  @@index([isArchived])
+}
+
+model ChannelMember {
+  id         String    @id @default(cuid())
+  channelId  String
+  userId     String
+  role       String    @default("member")
+  joinedAt   DateTime  @default(now())
+  lastReadAt DateTime?
+  isMuted    Boolean   @default(false)
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@index([channelId])
+  @@index([userId])
+}
+
+// ============================================================
+// DIRECT MESSAGES
+// ============================================================
+
+model DirectConversation {
+  id        String   @id @default(cuid())
+  companyId String
+  isGroup   Boolean  @default(false)
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company  Company                    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  members  DirectConversationMember[]
+  messages Message[]
+
+  @@index([companyId])
+}
+
+model DirectConversationMember {
+  id             String    @id @default(cuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime  @default(now())
+  lastReadAt     DateTime?
+  isMuted        Boolean   @default(false)
+
+  conversation DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@index([userId])
+}
+
+// ============================================================
+// MESSAGES
+// ============================================================
+
+enum MessageType {
+  TEXT
+  FILE
+  IMAGE
+  SYSTEM
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  channelId      String?
+  conversationId String?
+  parentId       String?
+  senderId       String
+  type           MessageType @default(TEXT)
+  content        String      @db.Text
+  editedAt       DateTime?
+  editedById     String?
+  isDeleted      Boolean     @default(false)
+  deletedAt      DateTime?
+  isPinned       Boolean     @default(false)
+  pinnedAt       DateTime?
+  pinnedById     String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  channel      Channel?            @relation(fields: [channelId], references: [id])
+  conversation DirectConversation? @relation(fields: [conversationId], references: [id])
+  sender       User                @relation("MessageSender", fields: [senderId], references: [id])
+  editedBy     User?               @relation("MessageEditor", fields: [editedById], references: [id])
+  pinnedBy     User?               @relation("MessagePinner", fields: [pinnedById], references: [id])
+  parent       Message?            @relation("ThreadMessages", fields: [parentId], references: [id])
+  replies      Message[]           @relation("ThreadMessages")
+  reads        MessageRead[]
+  reactions    MessageReaction[]
+  attachments  MessageAttachment[]
+
+  @@index([channelId, createdAt])
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@index([parentId])
+  @@index([isPinned])
+}
+
+model MessageRead {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  readAt    DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@index([messageId])
+  @@index([userId])
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+}
+
+model MessageAttachment {
+  id           String   @id @default(cuid())
+  messageId    String
+  uploadedById String
+  fileName     String
+  fileSize     Int
+  mimeType     String
+  storageKey   String
+  publicUrl    String?
+  createdAt    DateTime @default(now())
+
+  message    Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  uploadedBy User    @relation(fields: [uploadedById], references: [id])
+
+  @@index([messageId])
+  @@index([uploadedById])
+}
+
+// ============================================================
+// ANNOUNCEMENTS
+// ============================================================
+
+enum AnnouncementPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model Announcement {
+  id           String               @id @default(cuid())
+  companyId    String
+  createdById  String
+  title        String
+  content      String               @db.Text
+  priority     AnnouncementPriority @default(NORMAL)
+  requiresRead Boolean              @default(false)
+  isPinned     Boolean              @default(false)
+  isPublished  Boolean              @default(false)
+  publishedAt  DateTime?
+  expiresAt    DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  deletedAt    DateTime?
+
+  company   Company              @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy User                 @relation("AnnouncementCreator", fields: [createdById], references: [id])
+  audiences AnnouncementAudience[]
+  reads     AnnouncementRead[]
+
+  @@index([companyId, isPublished])
+  @@index([createdAt])
+  @@index([priority])
+}
+
+model AnnouncementAudience {
+  id             String    @id @default(cuid())
+  announcementId String
+  clinicId       String?
+  departmentId   String?
+  role           RoleType?
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@index([announcementId])
+}
+
+model AnnouncementRead {
+  id             String    @id @default(cuid())
+  announcementId String
+  userId         String
+  readAt         DateTime  @default(now())
+  confirmedAt    DateTime?
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+  @@index([announcementId])
+  @@index([userId])
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+enum NotificationType {
+  MENTION
+  DIRECT_MESSAGE
+  CHANNEL_MESSAGE
+  ANNOUNCEMENT
+  INVITATION
+  SYSTEM
+}
+
+model Notification {
+  id             String           @id @default(cuid())
+  userId         String
+  type           NotificationType
+  title          String
+  body           String?
+  channelId      String?
+  messageId      String?
+  announcementId String?
+  isRead         Boolean          @default(false)
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+// ============================================================
+// INVITATIONS
+// ============================================================
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+model Invitation {
+  id           String           @id @default(cuid())
+  companyId    String
+  email        String
+  role         RoleType         @default(EMPLOYEE)
+  clinicId     String?
+  departmentId String?
+  sentById     String
+  acceptedById String?
+  token        String           @unique
+  status       InvitationStatus @default(PENDING)
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  company    Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  sentBy     User    @relation("InvitationSender", fields: [sentById], references: [id])
+  acceptedBy User?   @relation("InvitationReceiver", fields: [acceptedById], references: [id])
+
+  @@index([email])
+  @@index([token])
+  @@index([status])
+  @@index([companyId])
+}
+
+// ============================================================
+// PRESENCE
+// ============================================================
+
+enum PresenceStatus {
+  ONLINE
+  AWAY
+  BUSY
+  OFFLINE
+}
+
+model UserPresence {
+  id         String         @id @default(cuid())
+  userId     String         @unique
+  status     PresenceStatus @default(OFFLINE)
+  statusText String?
+  lastSeenAt DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+// ============================================================
+// AUDIT LOG
+// ============================================================
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  companyId      String?
+  userId         String?
+  impersonatorId String?
+  action         String
+  resource       String?
+  resourceId     String?
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+
+  company      Company? @relation(fields: [companyId], references: [id])
+  user         User?    @relation(fields: [userId], references: [id])
+  impersonator User?    @relation("Impersonator", fields: [impersonatorId], references: [id])
+
+  @@index([companyId, createdAt])
+  @@index([userId])
+  @@index([action])
+  @@index([resource, resourceId])
+}
+
+// ============================================================
+// TENANT SETTINGS
+// ============================================================
+
+model TenantSettings {
+  id                 String   @id @default(cuid())
+  companyId          String   @unique
+  maxUsers           Int      @default(200)
+  maxStorage         BigInt   @default(10737418240)
+  allowGuests        Boolean  @default(false)
+  allowVoiceCalls    Boolean  @default(false)
+  allowVideoCalls    Boolean  @default(false)
+  primaryColor       String?
+  logoUrl            String?
+  customDomain       String?
+  emailNotifications Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+}
+
+// ============================================================
+// FEATURE FLAGS
+// ============================================================
+
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?
+  isEnabled   Boolean  @default(false)
+  companyIds  String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([key])
+}

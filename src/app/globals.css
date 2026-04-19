@@ -1,0 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 98%;
+    --foreground: 215 50% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 215 50% 15%;
+    --primary: 214 100% 22%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 174 100% 33%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 214 20% 94%;
+    --muted-foreground: 215 20% 45%;
+    --accent: 174 100% 33%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 20% 88%;
+    --input: 214 20% 88%;
+    --ring: 214 100% 22%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .kpi-card {
+    @apply transition-all duration-200 hover:-translate-y-0.5;
+  }
+
+  .badge-brand {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold
+           bg-brand-100 text-brand-700 border border-brand-200;
+  }
+
+  .badge-accent {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold
+           bg-accent-100 text-accent-700 border border-accent-200;
+  }
+
+  .table-executive thead tr {
+    @apply bg-brand-50 text-brand-700;
+  }
+
+  .table-executive tbody tr:hover {
+    @apply bg-brand-50/50;
+  }
+
+  .sidebar-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar {
+    width: 3px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 100px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
+  }
+
+  .sidebar-scroll::-webkit-scrollbar-button {
+    display: none;
+  }
+
+  /* Message composer */
+  .composer-input {
+    @apply w-full resize-none bg-transparent text-sm text-gray-900 placeholder-gray-400
+           focus:outline-none leading-relaxed;
+    min-height: 24px;
+    max-height: 200px;
+  }
+
+  /* Message hover actions */
+  .message-actions {
+    @apply opacity-0 group-hover:opacity-100 transition-opacity duration-150;
+  }
+
+  /* Channel list item unread */
+  .channel-unread {
+    @apply font-semibold text-gray-900;
+  }
+
+  /* Pinned message bar */
+  .pinned-bar {
+    @apply flex items-center gap-2 px-4 py-2 bg-brand-50 border-b border-brand-100
+           text-xs text-brand-700 font-medium cursor-pointer hover:bg-brand-100 transition-colors;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.brand.200') transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-brand-200 rounded-full;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.25s ease-out;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

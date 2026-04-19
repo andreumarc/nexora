@@ -14,26 +14,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await req.json()
-  const { email, name, role } = body as { email?: string; name?: string; role?: string }
-
-  if (!email) {
-    return NextResponse.json({ error: 'email is required' }, { status: 400 })
+  const body = await req.json().catch(() => ({}))
+  const { email, name, role, company_slug } = body as {
+    email?: string; name?: string; role?: string; company_slug?: string
   }
+  if (!email) return NextResponse.json({ error: 'email is required' }, { status: 400 })
 
-  const mappedRole = mapRole(role)
-
-  await prisma.user.upsert({
-    where: { email },
+  const user = await prisma.user.upsert({
+    where:  { email },
     update: { name: name ?? undefined },
-    create: {
-      email,
-      name: name ?? null,
-      isActive: true,
-      hashedPassword: null,
-      role: mappedRole,
-    },
+    create: { email, name: name ?? null, isActive: true, hashedPassword: null, role: mapRole(role) },
   })
+
+  if (company_slug) {
+    try {
+      const company = await prisma.company.findUnique({ where: { slug: company_slug } })
+      if (company) {
+        const existing = await prisma.membership.findFirst({ where: { userId: user.id, companyId: company.id } })
+        if (!existing) {
+          await prisma.membership.create({ data: { userId: user.id, companyId: company.id, role: 'EMPLOYEE', isActive: true } })
+        }
+      }
+    } catch { /* non-fatal */ }
+  }
 
   return NextResponse.json({ ok: true })
 }

@@ -141,9 +141,9 @@ export default function LoginPage() {
 
         <div className="w-full max-w-sm">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-brand-700">Iniciar sesión</h1>
+            <h1 className="text-2xl font-bold text-brand-700">Acceso al sistema</h1>
             <p className="mt-1.5 text-sm text-gray-500">
-              Accede a tu espacio de trabajo corporativo
+              Introduce tus credenciales para continuar
             </p>
           </div>
 
@@ -159,7 +159,7 @@ export default function LoginPage() {
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Email corporativo
+                Email
               </label>
               <input
                 {...register('email')}
@@ -175,15 +175,7 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-sm font-medium text-gray-700">Contraseña</label>
-                <a
-                  href="/recuperar-contrasena"
-                  className="text-xs text-brand-500 hover:text-brand-600 font-medium"
-                >
-                  ¿La olvidaste?
-                </a>
-              </div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Contraseña</label>
               <div className="relative">
                 <input
                   {...register('password')}
@@ -211,16 +203,19 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-2.5 px-4 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold rounded-lg text-sm transition-colors"
             >
-              {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+              {loading ? 'Verificando...' : 'Entrar al sistema'}
             </button>
           </form>
 
-          <p className="mt-8 text-center text-xs text-gray-400">
-            ¿No tienes acceso?{' '}
-            <span className="text-gray-500">
-              Solicita una invitación al administrador de tu empresa.
-            </span>
-          </p>
+          {/* Demo credentials */}
+          <div className="mt-6 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+            <p className="text-xs font-semibold text-gray-600 mb-1.5">Credenciales de demostración:</p>
+            <p className="text-xs text-gray-500">
+              Demo:{' '}
+              <span className="font-medium text-brand-600">demo@impulsodent.com</span>
+              {' / '}Demo2026!
+            </p>
+          </div>
         </div>
 
         <p className="mt-auto pt-8 text-xs text-gray-300">

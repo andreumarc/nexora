@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/db/prisma'
+import { prisma } from '@/lib/db/prisma'
 
 function mapRole(role?: string): 'SUPERADMIN' | 'COMPANY_ADMIN' | 'EMPLOYEE' {
   if (role === 'superadmin') return 'SUPERADMIN'

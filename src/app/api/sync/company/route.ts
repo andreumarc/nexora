@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import prisma from '@/lib/db/prisma'
+import { prisma } from '@/lib/db/prisma'
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization')

@@ -51,7 +51,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Principal',
     items: [
-      { label: 'Inicio', href: '/dashboard', icon: LayoutDashboard },
+      { label: 'Inicio', href: '/', icon: LayoutDashboard },
       { label: 'Canales', href: '/canales', icon: Hash },
       { label: 'Mensajes directos', href: '/mensajes', icon: MessageSquare },
       { label: 'Anuncios', href: '/anuncios', icon: Megaphone },
@@ -101,7 +101,7 @@ export function Sidebar({ companyName = 'Nexora', unreadNotifications = 0, mobil
   }
 
   function isActive(href: string) {
-    if (href === '/dashboard') return pathname === '/dashboard' || pathname === '/'
+    if (href === '/') return pathname === '/'
     return pathname.startsWith(href)
   }
 

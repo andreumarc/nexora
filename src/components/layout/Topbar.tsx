@@ -18,7 +18,7 @@ import Link from 'next/link'
 import { getInitials } from '@/lib/utils/format'
 
 const PAGE_TITLES: Record<string, string> = {
-  '/dashboard': 'Inicio',
+  '/': 'Inicio',
   '/canales': 'Canales',
   '/mensajes': 'Mensajes directos',
   '/anuncios': 'Anuncios',
@@ -54,7 +54,7 @@ export function Topbar({ user, unreadNotifications = 0, onMobileMenuOpen }: Topb
   const [searchOpen, setSearchOpen] = useState(false)
 
   const title = Object.entries(PAGE_TITLES).find(([path]) =>
-    pathname === path || (path !== '/dashboard' && pathname.startsWith(path))
+    pathname === path || (path !== '/' && pathname.startsWith(path))
   )?.[1] ?? 'Nexora'
 
   const initials = getInitials(user.name, user.firstName, user.lastName)

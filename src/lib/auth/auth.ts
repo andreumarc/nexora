@@ -91,6 +91,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ;(session.user as any).avatarUrl = token.avatarUrl
         ;(session.user as any).isSuperadmin = token.isSuperadmin
         ;(session.user as any).onboardingCompleted = token.onboardingCompleted
+        ;(session.user as any).companyId = (token.companyId as string | null) ?? null
       }
       return session
     },

@@ -14,12 +14,13 @@ export async function GET(request: NextRequest) {
   const hubSecret = process.env.HUB_JWT_SECRET
   if (!hubSecret) return NextResponse.redirect(`${origin}/login?error=not_configured`)
 
-  let email: string, name: string, appRole: string
+  let email: string, name: string, appRole: string, companySlug: string | null
   try {
     const { payload } = await jwtVerify(hubToken, new TextEncoder().encode(hubSecret), { issuer: 'impulsodent-hub' })
-    email = payload['email'] as string
-    name = (payload['name'] as string) ?? ''
-    appRole = (payload['app_role'] as string) ?? 'user'
+    email       = payload['email'] as string
+    name        = (payload['name'] as string) ?? ''
+    appRole     = (payload['app_role'] as string) ?? 'user'
+    companySlug = (payload['company_slug'] as string) ?? null
     if (!email) throw new Error('no email')
   } catch {
     return NextResponse.redirect(`${origin}/login?error=invalid_token`)
@@ -31,22 +32,39 @@ export async function GET(request: NextRequest) {
     user = await prisma.user.create({ data: { email, name: name || email, isActive: true } })
   }
 
-  const isProd = process.env.NODE_ENV === 'production'
+  // Assign user to company by company_slug
+  let companyId: string | null = null
+  if (companySlug) {
+    try {
+      const company = await prisma.company.findUnique({ where: { slug: companySlug } })
+      if (company) {
+        companyId = company.id
+        const existing = await prisma.membership.findFirst({ where: { userId: user.id, companyId: company.id } })
+        if (!existing) {
+          await prisma.membership.create({
+            data: { userId: user.id, companyId: company.id, role: 'EMPLOYEE', isActive: true },
+          })
+        }
+      }
+    } catch { /* non-fatal */ }
+  }
+
+  const isProd     = process.env.NODE_ENV === 'production'
   const cookieName = isProd ? '__Secure-authjs.session-token' : 'authjs.session-token'
-  const secret = process.env.AUTH_SECRET!
+  const secret     = process.env.AUTH_SECRET!
   const sessionToken = await encode({
-    token: { sub: user.id, email: user.email, name: user.name, id: user.id },
+    token: { sub: user.id, email: user.email, name: user.name, id: user.id, companyId },
     secret,
-    salt: cookieName,
+    salt:   cookieName,
     maxAge: 30 * 24 * 60 * 60,
   })
   const response = NextResponse.redirect(`${origin}/dashboard`)
   response.cookies.set(cookieName, sessionToken, {
     httpOnly: true,
-    secure: isProd,
+    secure:   isProd,
     sameSite: 'lax',
-    maxAge: 30 * 24 * 60 * 60,
-    path: '/',
+    maxAge:   30 * 24 * 60 * 60,
+    path:     '/',
   })
   return response
 }

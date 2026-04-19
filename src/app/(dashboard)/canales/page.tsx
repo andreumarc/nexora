@@ -2,11 +2,12 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth/auth'
 import { prisma } from '@/lib/db/prisma'
 import Link from 'next/link'
-import { Hash, Lock, Megaphone, Wrench, Plus, Search } from 'lucide-react'
+import { Hash, Lock, Megaphone, Wrench } from 'lucide-react'
 import { SectionCard } from '@/components/common/SectionCard'
 import { EmptyState } from '@/components/common/EmptyState'
 import { hasPermission } from '@/lib/permissions/rbac'
 import type { RoleType } from '@prisma/client'
+import { CreateChannelButton } from '@/components/modals/CreateChannelModal'
 
 const TYPE_ICONS = {
   PUBLIC: Hash,
@@ -75,12 +76,7 @@ export default async function CanalesPage() {
             {channels.length} canal{channels.length !== 1 ? 'es' : ''} disponible{channels.length !== 1 ? 's' : ''}
           </p>
         </div>
-        {canCreate && (
-          <button className="flex items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-medium transition-colors">
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Nuevo canal</span>
-          </button>
-        )}
+        {canCreate && <CreateChannelButton />}
       </div>
 
       {channels.length === 0 ? (

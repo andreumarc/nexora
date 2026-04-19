@@ -7,8 +7,9 @@ import { Avatar } from '@/components/common/Avatar'
 import { EmptyState } from '@/components/common/EmptyState'
 import { formatDate } from '@/lib/utils/format'
 import { cn } from '@/lib/utils/cn'
-import { Users, UserPlus, MoreHorizontal, CheckCircle2, XCircle, Shield } from 'lucide-react'
+import { Users, MoreHorizontal, CheckCircle2, XCircle } from 'lucide-react'
 import type { RoleType } from '@prisma/client'
+import { InviteUserButton } from '@/components/modals/InviteUserModal'
 
 export default async function AdminUsuariosPage() {
   const session = await auth()
@@ -62,10 +63,7 @@ export default async function AdminUsuariosPage() {
             {members.length} usuario{members.length !== 1 ? 's' : ''} en la empresa
           </p>
         </div>
-        <button className="flex items-center gap-1.5 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-sm font-medium transition-colors">
-          <UserPlus className="w-4 h-4" />
-          <span className="hidden sm:inline">Invitar usuario</span>
-        </button>
+        <InviteUserButton />
       </div>
 
       {/* Stats row */}

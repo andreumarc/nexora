@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth/auth'
 import { prisma } from '@/lib/db/prisma'
 import { AppShell } from '@/components/layout/AppShell'
+import { DashboardFilters } from '@/components/dashboard/dashboard-filters'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -61,6 +62,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       isSuperadmin={user.isSuperadmin}
       role={role}
     >
+      <DashboardFilters />
       {children}
     </AppShell>
   )

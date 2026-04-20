@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { jwtVerify } from 'jose'
-import { encode } from 'next-auth/jwt'
-import { prisma } from '@/lib/db/prisma'
 
+// Delegate to /sso page which uses NextAuth signIn("hub-sso", ...) for a real session cookie.
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const hubToken = searchParams.get('hub_token')
@@ -11,60 +9,8 @@ export async function GET(request: NextRequest) {
   const origin = host ? `${proto}://${host}` : new URL(request.url).origin
 
   if (!hubToken) return NextResponse.redirect(`${origin}/login?error=missing_token`)
-  const hubSecret = process.env.HUB_JWT_SECRET
-  if (!hubSecret) return NextResponse.redirect(`${origin}/login?error=not_configured`)
 
-  let email: string, name: string, appRole: string, companySlug: string | null
-  try {
-    const { payload } = await jwtVerify(hubToken, new TextEncoder().encode(hubSecret), { issuer: 'impulsodent-hub' })
-    email       = payload['email'] as string
-    name        = (payload['name'] as string) ?? ''
-    appRole     = (payload['app_role'] as string) ?? 'user'
-    companySlug = (payload['company_slug'] as string) ?? null
-    if (!email) throw new Error('no email')
-  } catch {
-    return NextResponse.redirect(`${origin}/login?error=invalid_token`)
-  }
-
-  // JIT upsert
-  let user = await prisma.user.findUnique({ where: { email } })
-  if (!user) {
-    user = await prisma.user.create({ data: { email, name: name || email, isActive: true } })
-  }
-
-  // Assign user to company by company_slug
-  let companyId: string | null = null
-  if (companySlug) {
-    try {
-      const company = await prisma.company.findUnique({ where: { slug: companySlug } })
-      if (company) {
-        companyId = company.id
-        const existing = await prisma.membership.findFirst({ where: { userId: user.id, companyId: company.id } })
-        if (!existing) {
-          await prisma.membership.create({
-            data: { userId: user.id, companyId: company.id, role: 'EMPLOYEE', isActive: true },
-          })
-        }
-      }
-    } catch { /* non-fatal */ }
-  }
-
-  const isProd     = process.env.NODE_ENV === 'production'
-  const cookieName = isProd ? '__Secure-authjs.session-token' : 'authjs.session-token'
-  const secret     = process.env.AUTH_SECRET!
-  const sessionToken = await encode({
-    token: { sub: user.id, email: user.email, name: user.name, id: user.id, companyId },
-    secret,
-    salt:   cookieName,
-    maxAge: 30 * 24 * 60 * 60,
-  })
-  const response = NextResponse.redirect(`${origin}/dashboard`)
-  response.cookies.set(cookieName, sessionToken, {
-    httpOnly: true,
-    secure:   isProd,
-    sameSite: 'lax',
-    maxAge:   30 * 24 * 60 * 60,
-    path:     '/',
-  })
-  return response
+  const target = new URL('/sso', origin)
+  target.searchParams.set('hub_token', hubToken)
+  return NextResponse.redirect(target)
 }

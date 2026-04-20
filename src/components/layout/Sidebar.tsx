@@ -20,7 +20,11 @@ import {
   Building2,
   MapPin,
   X,
+  LayoutGrid,
+  ExternalLink,
+  LogOut,
 } from 'lucide-react'
+import { signOut } from 'next-auth/react'
 import { cn } from '@/lib/utils/cn'
 
 // ImpulsoDent Design System — exact values
@@ -83,9 +87,15 @@ interface SidebarProps {
   mobileOpen?: boolean
   onMobileClose?: () => void
   isSuperadmin?: boolean
+  user?: {
+    name?: string | null
+    firstName?: string | null
+    lastName?: string | null
+    email?: string | null
+  }
 }
 
-export function Sidebar({ companyName = 'Nexora', unreadNotifications = 0, mobileOpen, onMobileClose, isSuperadmin = false }: SidebarProps) {
+export function Sidebar({ companyName = 'Nexora', unreadNotifications = 0, mobileOpen, onMobileClose, isSuperadmin = false, user }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const [hovered, setHovered] = useState<string | null>(null)
@@ -240,6 +250,28 @@ export function Sidebar({ companyName = 'Nexora', unreadNotifications = 0, mobil
         ))}
       </nav>
 
+      {/* ImpulsoDent Hub */}
+      <div className="px-2 py-2" style={{ borderTop: `1px solid ${BORDER_COLOR}` }}>
+        <a
+          href="https://app.impulsodent.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150"
+          style={{ background: 'rgba(13,148,136,0.12)', color: '#0d9488', justifyContent: collapsed ? 'center' : undefined }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(13,148,136,0.25)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.background = 'rgba(13,148,136,0.12)'; }}
+          title={collapsed ? 'ImpulsoDent Hub' : undefined}
+        >
+          <LayoutGrid style={{ width: 18, height: 18, flexShrink: 0 }} />
+          {!collapsed && (
+            <>
+              <span className="truncate flex-1">ImpulsoDent Hub</span>
+              <ExternalLink style={{ width: 14, height: 14, opacity: 0.6 }} />
+            </>
+          )}
+        </a>
+      </div>
+
       {/* Collapse button */}
       <div style={{ borderTop: `1px solid ${BORDER_COLOR}` }}>
         <button
@@ -259,6 +291,54 @@ export function Sidebar({ companyName = 'Nexora', unreadNotifications = 0, mobil
           )}
         </button>
       </div>
+
+      {/* User strip */}
+      {user && (
+        <div className="flex-shrink-0 px-2 py-2" style={{ borderTop: `1px solid ${BORDER_COLOR}` }}>
+          {!collapsed ? (
+            <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg">
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                style={{ background: LOGO_ICON_BG }}
+              >
+                {((user.firstName?.[0] ?? user.name?.[0] ?? '').toUpperCase()) + ((user.lastName?.[0] ?? '').toUpperCase())}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-white truncate leading-none">
+                  {user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.name}
+                </p>
+                <p className="text-[10px] mt-0.5 truncate" style={{ color: GROUP_LABEL }}>{user.email}</p>
+              </div>
+              <button
+                title="Cerrar sesión"
+                className="p-1.5 rounded-lg transition-colors"
+                style={{ color: INACTIVE_TEXT }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#fff' }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = INACTIVE_TEXT }}
+                onClick={() => signOut({ callbackUrl: '/login' })}
+              >
+                <LogOut style={{ width: 13, height: 13 }} />
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-2 py-1">
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+                style={{ background: LOGO_ICON_BG }}
+              >
+                {((user.firstName?.[0] ?? user.name?.[0] ?? '').toUpperCase()) + ((user.lastName?.[0] ?? '').toUpperCase())}
+              </div>
+              <button
+                title="Cerrar sesión"
+                style={{ color: INACTIVE_TEXT }}
+                onClick={() => signOut({ callbackUrl: '/login' })}
+              >
+                <LogOut style={{ width: 13, height: 13 }} />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </aside>
   )
 

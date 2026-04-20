@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth/auth'
 import { NextResponse } from 'next/server'
 
-const PUBLIC_ROUTES = ['/login', '/recuperar-contrasena', '/nueva-contrasena', '/invitacion', '/api/sync/user', '/api/sync/company', '/api/auth/hub-sso']
+const PUBLIC_ROUTES = ['/login', '/recuperar-contrasena', '/nueva-contrasena', '/invitacion', '/api/sync/user', '/api/sync/company', '/api/auth/hub-sso', '/sso']
 
 export default auth((req) => {
   const { pathname } = req.nextUrl

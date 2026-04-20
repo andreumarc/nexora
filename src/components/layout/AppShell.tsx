@@ -31,6 +31,7 @@ export function AppShell({ children, user, companyName, unreadNotifications = 0,
         mobileOpen={mobileMenuOpen}
         onMobileClose={() => setMobileMenuOpen(false)}
         isSuperadmin={isSuperadmin ?? false}
+        user={user}
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">

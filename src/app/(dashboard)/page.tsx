@@ -38,6 +38,19 @@ export default async function DashboardPage({
   const qCompanyId = typeof sp.companyId === 'string' ? sp.companyId : ''
   const qDateFrom  = typeof sp.dateFrom  === 'string' ? sp.dateFrom  : ''
   const qDateTo    = typeof sp.dateTo    === 'string' ? sp.dateTo    : ''
+  const qPeriod    = typeof sp.period    === 'string' ? sp.period    : '7days'
+
+  const PERIOD_LABELS: Record<string, { label: string; badge: string }> = {
+    today:      { label: 'Mensajes hoy',            badge: 'Hoy' },
+    yesterday:  { label: 'Mensajes ayer',           badge: 'Ayer' },
+    '7days':    { label: 'Mensajes últimos 7 días', badge: '7 días' },
+    '30days':   { label: 'Mensajes últimos 30 días', badge: '30 días' },
+    this_month: { label: 'Mensajes este mes',       badge: 'Este mes' },
+    last_month: { label: 'Mensajes mes anterior',   badge: 'Mes anterior' },
+    custom:     { label: 'Mensajes en el periodo',  badge: 'Personalizado' },
+  }
+  const messagesLabel = PERIOD_LABELS[qPeriod]?.label ?? 'Mensajes en el periodo'
+  const messagesBadge = PERIOD_LABELS[qPeriod]?.badge ?? 'Periodo'
 
   const user0 = await prisma.user.findUnique({
     where: { id: session.user.id },
@@ -159,10 +172,10 @@ export default async function DashboardPage({
           badge="Total"
         />
         <KpiCard
-          label="Mensajes esta semana"
+          label={messagesLabel}
           value={messageCount}
           color="accent"
-          badge="7 días"
+          badge={messagesBadge}
         />
         <KpiCard
           label="Personas en empresa"

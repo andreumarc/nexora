@@ -68,6 +68,10 @@ export function DashboardFilters({ isSuperadmin = false }: { isSuperadmin?: bool
     const params = new URLSearchParams(sp.toString())
     Object.entries(updates).forEach(([k, v]) => v ? params.set(k, v) : params.delete(k))
     router.push(`${pathname}?${params.toString()}`)
+    // Force the Server Component (page.tsx) to re-execute with the new
+    // searchParams — without this, Next.js Router Cache may serve the
+    // previous render and KPIs/date-filtered data won't refresh.
+    router.refresh()
   }, [router, sp, pathname])
 
   function selectPeriod(p: Period) {

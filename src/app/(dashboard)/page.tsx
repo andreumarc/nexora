@@ -20,9 +20,29 @@ import {
 import Link from 'next/link'
 import type { RoleType } from '@prisma/client'
 
-export default async function DashboardPage() {
+function parseDate(s?: string): Date | null {
+  if (!s) return null
+  const d = new Date(s)
+  return isNaN(d.getTime()) ? null : d
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
   const session = await auth()
   if (!session?.user?.id) redirect('/login')
+
+  const sp = (await searchParams) ?? {}
+  const qCompanyId = typeof sp.companyId === 'string' ? sp.companyId : ''
+  const qDateFrom  = typeof sp.dateFrom  === 'string' ? sp.dateFrom  : ''
+  const qDateTo    = typeof sp.dateTo    === 'string' ? sp.dateTo    : ''
+
+  const user0 = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { isSuperadmin: true },
+  })
 
   const membership = await prisma.membership.findFirst({
     where: { userId: session.user.id, isActive: true },
@@ -33,7 +53,7 @@ export default async function DashboardPage() {
     },
   })
 
-  if (!membership) {
+  if (!membership && !user0?.isSuperadmin) {
     return (
       <div className="p-4 sm:p-6">
         <EmptyState
@@ -45,21 +65,35 @@ export default async function DashboardPage() {
     )
   }
 
-  const { companyId, role } = membership
+  // Effective company — superadmin may override via URL, or omit for "all"
+  const companyId = qCompanyId || membership?.companyId || ''
+  const role = membership?.role ?? 'ADMIN'
 
-  // Parallel queries
+  const companyFilter = companyId ? { companyId } : {}
+  const channelCompanyFilter = companyId
+    ? { channel: { companyId } }
+    : {}
+  const membershipCompanyFilter = companyId ? { companyId } : {}
+
+  // Date range — default to last 7 days if not provided
+  const fromDate = parseDate(qDateFrom)
+  const toDate   = parseDate(qDateTo)
+  const effectiveFrom = fromDate ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  const effectiveTo   = toDate ? new Date(toDate.getTime() + 24 * 60 * 60 * 1000 - 1) : new Date()
+
+  // Parallel queries — filters applied based on effective companyId + date range
   const [channelCount, messageCount, userCount, recentAnnouncements, activeUsers] =
     await Promise.all([
-      prisma.channel.count({ where: { companyId, deletedAt: null } }),
+      prisma.channel.count({ where: { ...companyFilter, deletedAt: null } }),
       prisma.message.count({
         where: {
-          channel: { companyId },
-          createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+          ...channelCompanyFilter,
+          createdAt: { gte: effectiveFrom, lte: effectiveTo },
         },
       }),
-      prisma.membership.count({ where: { companyId, isActive: true } }),
+      prisma.membership.count({ where: { ...membershipCompanyFilter, isActive: true } }),
       prisma.announcement.findMany({
-        where: { companyId, isPublished: true, deletedAt: null },
+        where: { ...companyFilter, isPublished: true, deletedAt: null },
         orderBy: { publishedAt: 'desc' },
         take: 3,
         select: {
@@ -74,7 +108,12 @@ export default async function DashboardPage() {
         },
       }),
       prisma.userPresence.findMany({
-        where: { status: 'ONLINE', user: { memberships: { some: { companyId, isActive: true } } } },
+        where: {
+          status: 'ONLINE',
+          ...(companyId
+            ? { user: { memberships: { some: { companyId, isActive: true } } } }
+            : {}),
+        },
         take: 8,
         select: {
           status: true,
@@ -87,7 +126,7 @@ export default async function DashboardPage() {
               avatarUrl: true,
               jobTitle: true,
               memberships: {
-                where: { companyId },
+                where: companyId ? { companyId } : { isActive: true },
                 select: { role: true },
                 take: 1,
               },
@@ -107,7 +146,7 @@ export default async function DashboardPage() {
           Bienvenido{user.firstName ? `, ${user.firstName}` : ''} 👋
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          {membership.company.name} · {ROLE_LABELS[role as RoleType]}
+          {membership?.company?.name ?? 'Nexora'} · {ROLE_LABELS[role as RoleType] ?? role}
         </p>
       </div>
 

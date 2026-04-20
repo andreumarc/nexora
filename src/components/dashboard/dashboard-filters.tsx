@@ -105,7 +105,7 @@ export function DashboardFilters({ isSuperadmin = false }: { isSuperadmin?: bool
       </div>
 
       {/* Empresa — superadmin only */}
-      {isSuperadmin && companies.length > 1 && (
+      {isSuperadmin && companies.length > 0 && (
         <>
           <div className="w-px h-5 bg-gray-200 shrink-0" />
           <div className="flex items-center gap-2">

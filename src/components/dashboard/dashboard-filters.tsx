@@ -1,22 +1,33 @@
 'use client'
+/**
+ * DashboardFilters — global filter bar for Nexora dashboard.
+ * URL params: period, dateFrom, dateTo, companyId, clinicId.
+ * Role gating:
+ *   - Empresa (Company) selector: only for superadmins.
+ *   - Clínica selector: shown whenever the effective company has clinics
+ *     the user can see (superadmins: all; others: via memberships).
+ * Visible to all roles.
+ */
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
 import { SlidersHorizontal } from 'lucide-react'
 
-type Clinic = { id: string; name: string }
+type Company = { id: string; name: string }
+type Clinic  = { id: string; name: string; companyId: string }
 type Period = 'today' | 'yesterday' | '7days' | '30days' | 'this_month' | 'last_month' | 'custom'
 
 const LABELS: Record<Period, string> = {
   today: 'Hoy', yesterday: 'Ayer', '7days': '7 días', '30days': '30 días',
   this_month: 'Este mes', last_month: 'Mes anterior', custom: 'Personalizado',
 }
+const PERIODS: Period[] = ['today', 'yesterday', '7days', '30days', 'this_month', 'last_month']
 
+function fmt(d: Date) { return d.toISOString().slice(0, 10) }
 function getRange(period: Period): { from: string; to: string } {
   const now = new Date()
-  const fmt = (d: Date) => d.toISOString().slice(0, 10)
-  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const lastOfMonth  = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-  const yesterday    = new Date(now); yesterday.setDate(now.getDate() - 1)
+  const firstOfMonth   = new Date(now.getFullYear(), now.getMonth(), 1)
+  const lastOfMonth    = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  const yesterday      = new Date(now); yesterday.setDate(now.getDate() - 1)
   const lastMonthFirst = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   const lastMonthLast  = new Date(now.getFullYear(), now.getMonth(), 0)
   const d7  = new Date(now); d7.setDate(now.getDate() - 7)
@@ -33,20 +44,25 @@ function getRange(period: Period): { from: string; to: string } {
   return map[period]
 }
 
-export function DashboardFilters() {
+export function DashboardFilters({ isSuperadmin = false }: { isSuperadmin?: boolean }) {
   const router   = useRouter()
   const sp       = useSearchParams()
   const pathname = usePathname()
-  const [clinics, setClinics] = useState<Clinic[]>([])
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [clinics, setClinics]     = useState<Clinic[]>([])
 
   useEffect(() => {
-    fetch('/api/dashboard/clinics').then(r => r.json()).then(d => setClinics(d.clinics ?? [])).catch(() => {})
+    fetch('/api/filters/context')
+      .then((r) => r.ok ? r.json() : { companies: [], clinics: [] })
+      .then((d) => { setCompanies(d.companies ?? []); setClinics(d.clinics ?? []) })
+      .catch(() => {})
   }, [])
 
-  const period   = (sp.get('period') as Period) ?? 'this_month'
-  const clinicId = sp.get('clinicId') ?? ''
-  const dateFrom = sp.get('dateFrom') ?? ''
-  const dateTo   = sp.get('dateTo') ?? ''
+  const period    = (sp.get('period') as Period) ?? 'this_month'
+  const companyId = sp.get('companyId') ?? ''
+  const clinicId  = sp.get('clinicId')  ?? ''
+  const dateFrom  = sp.get('dateFrom')  ?? ''
+  const dateTo    = sp.get('dateTo')    ?? ''
 
   const nav = useCallback((updates: Record<string, string>) => {
     const params = new URLSearchParams(sp.toString())
@@ -60,7 +76,9 @@ export function DashboardFilters() {
     nav({ period: p, dateFrom: from, dateTo: to })
   }
 
-  const PERIODS: Period[] = ['today', 'yesterday', '7days', '30days', 'this_month', 'last_month']
+  const effectiveClinics = clinics.filter(
+    (c) => !companyId || c.companyId === companyId,
+  )
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3 flex flex-wrap items-center gap-3 mb-4">
@@ -85,7 +103,24 @@ export function DashboardFilters() {
         <input type="date" value={dateTo} onChange={e => nav({ period: 'custom', dateFrom, dateTo: e.target.value })}
           className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400" />
       </div>
-      {clinics.length > 0 && (
+
+      {/* Empresa — superadmin only */}
+      {isSuperadmin && companies.length > 1 && (
+        <>
+          <div className="w-px h-5 bg-gray-200 shrink-0" />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Empresa</span>
+            <select value={companyId}
+              onChange={e => nav({ companyId: e.target.value, clinicId: '' })}
+              className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400 bg-white">
+              <option value="">Todas</option>
+              {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+        </>
+      )}
+
+      {effectiveClinics.length > 0 && (
         <>
           <div className="w-px h-5 bg-gray-200 shrink-0" />
           <div className="flex items-center gap-2">
@@ -93,7 +128,7 @@ export function DashboardFilters() {
             <select value={clinicId} onChange={e => nav({ clinicId: e.target.value })}
               className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-violet-400 bg-white">
               <option value="">Todas las clínicas</option>
-              {clinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {effectiveClinics.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
         </>

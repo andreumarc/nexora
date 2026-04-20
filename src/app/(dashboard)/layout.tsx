@@ -62,7 +62,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       isSuperadmin={user.isSuperadmin}
       role={role}
     >
-      <DashboardFilters />
+      <DashboardFilters isSuperadmin={user.isSuperadmin} />
       {children}
     </AppShell>
   )

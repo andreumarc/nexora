@@ -44,6 +44,7 @@ interface NavItem {
   href: string
   icon: React.ElementType
   badge?: number
+  superadminOnly?: boolean
 }
 
 interface NavGroup {
@@ -70,9 +71,11 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: 'Administración',
+    title: 'Gestión',
     items: [
       { label: 'Usuarios', href: '/admin/usuarios', icon: Users },
+      { label: 'Clínicas', href: '/admin/clinicas', icon: MapPin },
+      { label: 'Empresas', href: '/admin/empresas', icon: Building2, superadminOnly: true },
       { label: 'Estructura', href: '/admin/estructura', icon: Building2 },
       { label: 'Métricas', href: '/admin/metricas', icon: BarChart3 },
       { label: 'Auditoría', href: '/admin/auditoria', icon: ShieldCheck },
@@ -153,39 +156,10 @@ export function Sidebar({ companyName = 'Nexora', unreadNotifications = 0, mobil
 
       {/* Nav */}
       <nav className="flex-1 px-2 py-4 overflow-y-auto sidebar-scroll space-y-5">
-        {isSuperadmin && (
-          <div>
-            {!collapsed && (
-              <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest" style={{ color: GROUP_LABEL }}>
-                Plataforma
-              </p>
-            )}
-            <ul className="space-y-0.5">
-              {[
-                { label: 'Empresas', href: '/admin/empresas', icon: Building2 },
-                { label: 'Clínicas', href: '/admin/clinicas', icon: MapPin },
-              ].map((item) => {
-                const active = isActive(item.href)
-                const Icon = item.icon
-                const isHovered = hovered === item.href
-                return (
-                  <li key={item.href}>
-                    <Link href={item.href} title={collapsed ? item.label : undefined} onClick={onMobileClose}
-                      style={{ background: active ? ACTIVE_BG : isHovered ? HOVER_BG : 'transparent', color: active ? ACTIVE_TEXT : INACTIVE_TEXT }}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 relative"
-                      onMouseEnter={() => setHovered(item.href)} onMouseLeave={() => setHovered(null)}
-                    >
-                      <Icon style={{ width: 18, height: 18, color: active ? '#fff' : INACTIVE_TEXT, flexShrink: 0 }} />
-                      {!collapsed && <span className="truncate flex-1">{item.label}</span>}
-                      {!collapsed && active && <ChevronRight style={{ width: 14, height: 14, color: 'rgba(255,255,255,0.7)' }} />}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        )}
-        {NAV_GROUPS.map((group) => (
+        {NAV_GROUPS.map((group) => {
+          const visibleItems = group.items.filter(item => !item.superadminOnly || isSuperadmin)
+          if (visibleItems.length === 0) return null
+          return (
           <div key={group.title}>
             {!collapsed && (
               <p
@@ -196,7 +170,7 @@ export function Sidebar({ companyName = 'Nexora', unreadNotifications = 0, mobil
               </p>
             )}
             <ul className="space-y-0.5">
-              {group.items.map((item) => {
+              {visibleItems.map((item) => {
                 const active = isActive(item.href)
                 const Icon = item.icon
                 const isHovered = hovered === item.href
@@ -247,7 +221,8 @@ export function Sidebar({ companyName = 'Nexora', unreadNotifications = 0, mobil
               })}
             </ul>
           </div>
-        ))}
+          )
+        })}
       </nav>
 
       {/* ImpulsoDent Hub */}

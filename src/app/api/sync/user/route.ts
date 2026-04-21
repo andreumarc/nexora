@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db/prisma'
 
-function mapRole(role?: string): 'SUPERADMIN' | 'COMPANY_ADMIN' | 'EMPLOYEE' {
-  if (role === 'superadmin') return 'SUPERADMIN'
-  if (role === 'admin') return 'COMPANY_ADMIN'
-  return 'EMPLOYEE'
+type AppRole = 'SUPERADMIN' | 'ADMIN' | 'DIRECCION_GENERAL' | 'DIRECCION_CLINICA' | 'RRHH' | 'ODONTOLOGO' | 'AUXILIAR'
+
+function mapRole(role?: string): AppRole {
+  if (role === 'superadmin')        return 'SUPERADMIN'
+  if (role === 'admin')             return 'ADMIN'
+  if (role === 'direccion_general') return 'DIRECCION_GENERAL'
+  if (role === 'direccion_clinica') return 'DIRECCION_CLINICA'
+  if (role === 'rrhh')              return 'RRHH'
+  if (role === 'odontologo')        return 'ODONTOLOGO'
+  return 'AUXILIAR'
 }
 
 export async function POST(req: NextRequest) {
@@ -33,7 +39,7 @@ export async function POST(req: NextRequest) {
       if (company) {
         const existing = await prisma.membership.findFirst({ where: { userId: user.id, companyId: company.id } })
         if (!existing) {
-          await prisma.membership.create({ data: { userId: user.id, companyId: company.id, role: 'EMPLOYEE', isActive: true } })
+          await prisma.membership.create({ data: { userId: user.id, companyId: company.id, role: mapRole(role), isActive: true } })
         }
       }
     } catch { /* non-fatal */ }

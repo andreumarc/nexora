@@ -66,7 +66,7 @@ const ROLE_PERMISSIONS: Record<RoleType, Permission[]> = {
     'company:create', 'company:update', 'company:delete', 'user:impersonate',
   ],
 
-  COMPANY_ADMIN: [
+  ADMIN: [
     'channel:create', 'channel:update', 'channel:delete', 'channel:archive', 'channel:manage_members',
     'message:send', 'message:edit_own', 'message:delete_own', 'message:delete_any', 'message:pin', 'message:react',
     'announcement:create', 'announcement:update', 'announcement:delete', 'announcement:publish', 'announcement:read',
@@ -77,16 +77,15 @@ const ROLE_PERMISSIONS: Record<RoleType, Permission[]> = {
     'audit:read', 'metrics:read', 'settings:read', 'settings:update',
   ],
 
-  DIRECTOR_GENERAL: [
+  DIRECCION_GENERAL: [
     'channel:create', 'channel:update', 'channel:manage_members',
     'message:send', 'message:edit_own', 'message:delete_own', 'message:delete_any', 'message:pin', 'message:react',
     'announcement:create', 'announcement:update', 'announcement:publish', 'announcement:read',
     'file:upload', 'file:download', 'file:delete_own',
-    'user:invite',
-    'metrics:read',
+    'user:invite', 'metrics:read',
   ],
 
-  DIRECTOR_OPERATIONS: [
+  DIRECCION_CLINICA: [
     'channel:create', 'channel:update', 'channel:manage_members',
     'message:send', 'message:edit_own', 'message:delete_own', 'message:pin', 'message:react',
     'announcement:create', 'announcement:publish', 'announcement:read',
@@ -94,14 +93,7 @@ const ROLE_PERMISSIONS: Record<RoleType, Permission[]> = {
     'metrics:read',
   ],
 
-  CLINIC_DIRECTOR: [
-    'channel:create', 'channel:update', 'channel:manage_members',
-    'message:send', 'message:edit_own', 'message:delete_own', 'message:pin', 'message:react',
-    'announcement:create', 'announcement:publish', 'announcement:read',
-    'file:upload', 'file:download', 'file:delete_own',
-  ],
-
-  HR_MANAGER: [
+  RRHH: [
     'channel:create', 'channel:update', 'channel:manage_members',
     'message:send', 'message:edit_own', 'message:delete_own', 'message:react',
     'announcement:create', 'announcement:update', 'announcement:publish', 'announcement:read',
@@ -109,22 +101,16 @@ const ROLE_PERMISSIONS: Record<RoleType, Permission[]> = {
     'user:invite',
   ],
 
-  RECEPTIONIST: [
-    'message:send', 'message:edit_own', 'message:delete_own', 'message:react',
+  ODONTOLOGO: [
+    'message:send', 'message:edit_own', 'message:delete_own', 'message:pin', 'message:react',
     'announcement:read',
     'file:upload', 'file:download', 'file:delete_own',
   ],
 
-  EMPLOYEE: [
+  AUXILIAR: [
     'message:send', 'message:edit_own', 'message:delete_own', 'message:react',
     'announcement:read',
     'file:upload', 'file:download', 'file:delete_own',
-  ],
-
-  GUEST: [
-    'message:send', 'message:react',
-    'announcement:read',
-    'file:download',
   ],
 }
 
@@ -146,15 +132,13 @@ export function getPermissions(role: RoleType): Permission[] {
 
 // Role hierarchy for comparison
 const ROLE_LEVEL: Record<RoleType, number> = {
-  SUPERADMIN: 100,
-  COMPANY_ADMIN: 90,
-  DIRECTOR_GENERAL: 80,
-  DIRECTOR_OPERATIONS: 75,
-  CLINIC_DIRECTOR: 70,
-  HR_MANAGER: 60,
-  RECEPTIONIST: 30,
-  EMPLOYEE: 20,
-  GUEST: 10,
+  SUPERADMIN:        100,
+  ADMIN:              90,
+  DIRECCION_GENERAL:  80,
+  DIRECCION_CLINICA:  70,
+  RRHH:               60,
+  ODONTOLOGO:         30,
+  AUXILIAR:           20,
 }
 
 export function isRoleAtLeast(role: RoleType, minRole: RoleType): boolean {
@@ -166,25 +150,21 @@ export function canManageUser(managerRole: RoleType, targetRole: RoleType): bool
 }
 
 export const ROLE_LABELS: Record<RoleType, string> = {
-  SUPERADMIN: 'Superadministrador',
-  COMPANY_ADMIN: 'Admin empresa',
-  DIRECTOR_GENERAL: 'Dirección general',
-  DIRECTOR_OPERATIONS: 'Dirección operaciones',
-  CLINIC_DIRECTOR: 'Dirección clínica',
-  HR_MANAGER: 'RRHH / Personas',
-  RECEPTIONIST: 'Recepción / Admin',
-  EMPLOYEE: 'Empleado',
-  GUEST: 'Invitado',
+  SUPERADMIN:        'Superadmin',
+  ADMIN:             'Administrador',
+  DIRECCION_GENERAL: 'Dirección General',
+  DIRECCION_CLINICA: 'Dirección Clínica',
+  RRHH:              'RRHH',
+  ODONTOLOGO:        'Odontólogo',
+  AUXILIAR:          'Auxiliar',
 }
 
 export const ROLE_COLORS: Record<RoleType, { bg: string; text: string; border: string }> = {
-  SUPERADMIN: { bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200' },
-  COMPANY_ADMIN: { bg: 'bg-brand-50', text: 'text-brand-700', border: 'border-brand-200' },
-  DIRECTOR_GENERAL: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
-  DIRECTOR_OPERATIONS: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
-  CLINIC_DIRECTOR: { bg: 'bg-accent-50', text: 'text-accent-700', border: 'border-accent-200' },
-  HR_MANAGER: { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
-  RECEPTIONIST: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
-  EMPLOYEE: { bg: 'bg-gray-100', text: 'text-gray-600', border: 'border-gray-200' },
-  GUEST: { bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-200' },
+  SUPERADMIN:        { bg: 'bg-purple-50',  text: 'text-purple-700',  border: 'border-purple-200' },
+  ADMIN:             { bg: 'bg-brand-50',   text: 'text-brand-700',   border: 'border-brand-200' },
+  DIRECCION_GENERAL: { bg: 'bg-blue-50',    text: 'text-blue-700',    border: 'border-blue-200' },
+  DIRECCION_CLINICA: { bg: 'bg-accent-50',  text: 'text-accent-700',  border: 'border-accent-200' },
+  RRHH:              { bg: 'bg-green-50',   text: 'text-green-700',   border: 'border-green-200' },
+  ODONTOLOGO:        { bg: 'bg-cyan-50',    text: 'text-cyan-700',    border: 'border-cyan-200' },
+  AUXILIAR:          { bg: 'bg-gray-100',   text: 'text-gray-600',    border: 'border-gray-200' },
 }

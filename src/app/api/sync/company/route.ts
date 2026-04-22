@@ -3,8 +3,9 @@ import { prisma } from '@/lib/db/prisma'
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
-  const secret = process.env.JWT_SECRET
-  if (!secret || authHeader !== `Bearer ${secret}`) {
+  const secret = process.env.HUB_JWT_SECRET ?? process.env.JWT_SECRET
+  if (!secret) return NextResponse.json({ error: 'HUB_JWT_SECRET not configured' }, { status: 500 })
+  if (authHeader !== `Bearer ${secret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

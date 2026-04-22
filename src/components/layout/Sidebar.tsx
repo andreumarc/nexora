@@ -18,7 +18,6 @@ import {
   ChevronRight,
   MessageCircle,
   Building2,
-  MapPin,
   X,
   LayoutGrid,
   ExternalLink,
@@ -73,9 +72,6 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: 'Gestión',
     items: [
-      { label: 'Usuarios', href: '/admin/usuarios', icon: Users },
-      { label: 'Clínicas', href: '/admin/clinicas', icon: MapPin },
-      { label: 'Empresas', href: '/admin/empresas', icon: Building2, superadminOnly: true },
       { label: 'Estructura', href: '/admin/estructura', icon: Building2 },
       { label: 'Métricas', href: '/admin/metricas', icon: BarChart3 },
       { label: 'Auditoría', href: '/admin/auditoria', icon: ShieldCheck },

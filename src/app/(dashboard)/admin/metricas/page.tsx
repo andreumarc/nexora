@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth/auth'
 import { prisma } from '@/lib/db/prisma'
-import { hasPermission } from '@/lib/permissions/rbac'
+import { hasPermission } from '@/lib/permissions'
 import { KpiCard } from '@/components/common/KpiCard'
 import { SectionCard } from '@/components/common/SectionCard'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -20,7 +20,7 @@ export default async function MetricasPage() {
   const isSuperadmin = (session.user as any).isSuperadmin
   if (!membership && !isSuperadmin) redirect('/login')
 
-  const canView = isSuperadmin || hasPermission(membership!.role as RoleType, 'metrics:read')
+  const canView = isSuperadmin || hasPermission(membership!.role as RoleType, 'analytics:view')
   if (!canView) redirect('/dashboard')
 
   const companyId = membership!.companyId

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Hash, Lock, Megaphone, Wrench } from 'lucide-react'
 import { SectionCard } from '@/components/common/SectionCard'
 import { EmptyState } from '@/components/common/EmptyState'
-import { hasPermission } from '@/lib/permissions/rbac'
+import { hasPermission } from '@/lib/permissions'
 import type { RoleType } from '@prisma/client'
 import { CreateChannelButton } from '@/components/modals/CreateChannelModal'
 
@@ -55,7 +55,7 @@ export default async function CanalesPage() {
     },
   })
 
-  const canCreate = hasPermission(membership.role as RoleType, 'channel:create')
+  const canCreate = hasPermission(membership.role as RoleType, 'channels:create')
 
   const grouped = channels.reduce<Record<string, typeof channels>>(
     (acc, ch) => {

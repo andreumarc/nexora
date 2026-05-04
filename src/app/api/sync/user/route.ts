@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { timingSafeEqual } from 'crypto'
 import { prisma } from '@/lib/db/prisma'
 
-type AppRole = 'SUPERADMIN' | 'ADMIN' | 'DIRECCION_GENERAL' | 'DIRECCION_CLINICA' | 'RRHH' | 'ODONTOLOGO' | 'AUXILIAR'
+// Audit 2026-05 [C-4 / C-6]: roles allowed via /sync/user. `superadmin` is
+// rejected — escalation must come from the admin UI, not server-to-server sync.
+type AppRole = 'ADMIN' | 'DIRECCION_GENERAL' | 'DIRECCION_CLINICA' | 'RRHH' | 'ODONTOLOGO' | 'AUXILIAR'
 
 function mapRole(role?: string): AppRole {
-  if (role === 'superadmin')        return 'SUPERADMIN'
   if (role === 'admin')             return 'ADMIN'
   if (role === 'direccion_general') return 'DIRECCION_GENERAL'
   if (role === 'direccion_clinica') return 'DIRECCION_CLINICA'
@@ -14,24 +16,47 @@ function mapRole(role?: string): AppRole {
   return 'AUXILIAR'
 }
 
+function bearerOk(authHeader: string | null, secret: string): boolean {
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return false
+  const token = authHeader.slice(7)
+  if (token.length !== secret.length) return false
+  try {
+    return timingSafeEqual(Buffer.from(token), Buffer.from(secret))
+  } catch {
+    return false
+  }
+}
+
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
-  const secret = process.env.HUB_JWT_SECRET ?? process.env.JWT_SECRET
+  const secret = process.env.HUB_JWT_SECRET ?? ''
   if (!secret) return NextResponse.json({ error: 'HUB_JWT_SECRET not configured' }, { status: 500 })
-  if (authHeader !== `Bearer ${secret}`) {
+  if (!bearerOk(authHeader, secret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const body = await req.json().catch(() => ({}))
-  const { email, name, role, company_slug, clinic_ids, password, active } = body as {
+  const { email, name, role, company_slug, clinic_ids, password, password_hash, active } = body as {
     email?: string; name?: string; role?: string; company_slug?: string
-    clinic_ids?: string[] | 'ALL'; password?: string; active?: boolean
+    clinic_ids?: string[] | 'ALL'; password?: string; password_hash?: string; active?: boolean
   }
   if (!email) return NextResponse.json({ error: 'email is required' }, { status: 400 })
+  // Hard-reject any attempt to assign superadmin via sync.
+  if (typeof role === 'string' && role.toLowerCase() === 'superadmin') {
+    return NextResponse.json({ error: 'role superadmin not assignable via sync' }, { status: 403 })
+  }
 
   const mappedRole = mapRole(role)
-  const isSuperadmin = mappedRole === 'SUPERADMIN'
-  const hashedPassword = password ? await bcrypt.hash(password, 12) : null
+  // isSuperadmin must NEVER be flipped on by sync.
+  // Resolver hash: plaintext > forwarded bcrypt hash desde el Hub.
+  // Hub y nexora usan bcryptjs → los hashes son intercambiables. Sin esto,
+  // los usuarios sincronizados sin password plaintext quedaban fuera.
+  async function resolveHash(): Promise<string | null> {
+    if (password) return bcrypt.hash(password, 12)
+    if (password_hash && /^\$2[aby]\$/.test(password_hash)) return password_hash
+    return null
+  }
+  const hashedPassword = await resolveHash()
 
   // Split Hub-provided name into firstName/lastName so the dashboard does not
   // bounce hub-synced users into /onboarding (gate at (dashboard)/layout.tsx).
@@ -42,11 +67,11 @@ export async function POST(req: NextRequest) {
 
   const user = await prisma.user.upsert({
     where:  { email },
+    // Audit 2026-05 [C-4]: do NOT touch `isSuperadmin` from a sync payload.
     update: {
       name: trimmedName || undefined,
       ...(firstName ? { firstName } : {}),
       ...(lastName  ? { lastName }  : {}),
-      isSuperadmin,
       onboardingCompleted: true,
       ...(active !== undefined ? { isActive: active } : {}),
       ...(hashedPassword ? { hashedPassword } : {}),
@@ -57,7 +82,7 @@ export async function POST(req: NextRequest) {
       firstName,
       lastName,
       isActive: active !== false,
-      isSuperadmin,
+      isSuperadmin: false,
       onboardingCompleted: true,
       hashedPassword,
     },
